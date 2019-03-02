@@ -12,5 +12,6 @@ int main()
     }
     printf("The total is ");
     PrintRational(sum);
+    printf(".\n");
     return 0;
 }
