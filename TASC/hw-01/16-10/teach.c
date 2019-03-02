@@ -8,7 +8,6 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 
@@ -21,12 +20,14 @@
  * ---------
  * MaxQuestions          -- Maximum question number
  * MaxLinesPerQuestion   -- Maximum number of lines per question
+ * MaxLinesPerResponse   -- Maximum number of lines per response
  * MaxAnswersPerQuestion -- Maximum answers per question
  * EndMarker             -- String marking end of question text
  */
 
 #define MaxQuestions          100
 #define MaxLinesPerQuestion    20
+#define MaxLinesPerResponse    20
 #define MaxAnswersPerQuestion  10
 #define EndMarker "-----"
 
@@ -56,6 +57,7 @@ typedef struct {
 
 typedef struct {
     string qtext[MaxLinesPerQuestion+1];
+    string response[MaxLinesPerResponse+1];
     answerT answers[MaxAnswersPerQuestion];
     int nAnswers;
 } *questionT;
@@ -77,15 +79,13 @@ typedef struct {
 
 static courseDB ReadDataBase(void);
 static bool ReadOneQuestion(FILE *infile, courseDB course);
-static void ReadQuestionText(FILE *infile, questionT q);
+static void ReadText(FILE *infile, questionT q, string mode);
 static void ReadAnswers(FILE *infile, questionT q);
 static FILE *OpenUserFile(string prompt, string mode);
 static void ProcessCourse(courseDB course);
 static void AskQuestion(questionT q);
 static int FindAnswer(string ans, questionT q);
-static int FindBegin(questionT q);
-static bool HasDot(string line);
-static bool HasJudge(string line);
+static void PrintText(string *text);
 
 /* Main program */
 
@@ -147,7 +147,8 @@ static bool ReadOneQuestion(FILE *infile, courseDB course)
         Error("Question number %d out of range", qnum);
     }
     question = New(questionT);
-    ReadQuestionText(infile, question);
+    ReadText(infile, question, "response");
+    ReadText(infile, question, "question");
     ReadAnswers(infile, question);
     course->questions[qnum] = question;
     return (TRUE);
@@ -163,7 +164,7 @@ static bool ReadOneQuestion(FILE *infile, courseDB course)
  * by a line matching the string EndMarker.
  */
 
-static void ReadQuestionText(FILE *infile, questionT q)
+static void ReadText(FILE *infile, questionT q, string mode)
 {
     string line;
     int nlines;
@@ -175,10 +176,17 @@ static void ReadQuestionText(FILE *infile, questionT q)
         if (nlines == MaxLinesPerQuestion) {
             Error("Too many lines");
         }
-        q->qtext[nlines] = line;
+
+        if (StringEqual(mode, "question"))
+            q->qtext[nlines] = line;
+        if (StringEqual(mode, "response"))
+            q->response[nlines] = line;
         nlines++;
     }
-    q->qtext[nlines] = NULL;
+    if (StringEqual(mode, "question"))
+        q->qtext[nlines] = NULL;
+    if (StringEqual(mode, "response"))
+        q->response[nlines] = NULL;
 }
 
 /*
@@ -278,6 +286,9 @@ static void ProcessCourse(courseDB course)
             printf("I don't understand that.\n");
         } else {
             qnum = q->answers[index].nextq;
+            if (qnum != 0) {
+                PrintText(course->questions[qnum]->response);
+            }
         }
     }
 }
@@ -295,7 +306,7 @@ static void AskQuestion(questionT q)
 {
     int i;
 
-    for (i = FindBegin(q); q->qtext[i] != NULL; i++) {
+    for (i = 0; q->qtext[i] != NULL; i++) {
         printf("%s\n", q->qtext[i]);
     }
 }
@@ -316,55 +327,20 @@ static int FindAnswer(string ans, questionT q)
     int i;
 
     for (i = 0; i < q->nAnswers; i++) {
-        if (StringEqual(ans, q->answers[i].ans)) return (i);
+        if (StringEqual(ans, q->answers[i].ans)) {
+            return (i);
+        }
     }
     return (-1);
 }
 
-/*
- * Function: FindBegin
- * Usage: FindAnswer(q)
- * -------------------------
- * This function looks up the place where true answer begins.
- * The function uses a simple linear search algorithm to look
- * through the array.
- */
-
-static int FindBegin(questionT q)
-{
-    int i, j;
-
-    for (j = 0; q->qtext[j] != NULL; ++j) {
-        if (HasDot(q->qtext[j])) {
-            break;
-        }
-    }
-    for (i = 0; i <= j && q->qtext[i] != NULL && q->qtext[j] != NULL; ++i) {
-        if (HasJudge(q->qtext[i])) {
-            return j + 1;
-        }
-    }
-    return 0;
-}
-
-static bool HasDot(string line)
+static void PrintText(string *text)
 {
     int i;
-    
-    for (i = strlen(line) - 1; i >= 0; --i) {
-        if (line[i] == '.') {
-            return TRUE;
-        }
-        else if (!isblank(line[i])) {
-            return FALSE;
-        }
+
+    for (i = 0; text[i] != NULL; ++i) {
+        printf("%s", text[i]);
+        /*if (text[i + 1] != NULL)*/
+            printf("\n");
     }
-    return FALSE;
-    
 }
-
-static bool HasJudge(string line)
-{
-    return (FindString("Yes", line, 0) != -1 || FindString("No", line, 0) != -1);
-}
-

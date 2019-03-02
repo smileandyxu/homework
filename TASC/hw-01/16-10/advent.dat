@@ -1,5 +1,6 @@
 Welcome to ADVENTURE!
 1
+-----
 You are standing at the end of a road before a
 small brick building.  A small stream flows out
 of the building and down a gully to the south.
@@ -16,6 +17,7 @@ quit:  0
 q:     0
 
 2
+-----
 You are in a valley in the forest beside a stream
 tumbling along a rocky bed.  The stream is flowing
 to the south.
@@ -30,6 +32,7 @@ quit:  0
 q:     0
 
 3
+-----
 At your feet all the water of the stream splashes
 down a two-inch slit in the rock.  To the south,
 the streambed is bare rock.
@@ -43,6 +46,7 @@ quit:  0
 q:     0
 
 4
+-----
 You are in a 20-foot depression floored with bare
 dirt.  Set into the dirt is a strong steel grate
 mounted in concrete.  A dry streambed leads into
@@ -59,6 +63,7 @@ quit:  0
 q:     0
 
 5
+-----
 You are in a small chamber beneath a 3x3 steel grate
 to the surface.  A low crawl leads over cobbles to
 the west.
@@ -72,6 +77,7 @@ quit:  0
 q:     0
 
 6
+-----
 You are crawling over cobbles into a low east/west
 passage.  There is a dim light to the east.
 -----
@@ -83,6 +89,7 @@ quit:  0
 q:     0
 
 7
+-----
 It is now pitch dark.  If you proceed you will likely
 fall into a pit.
 -----
@@ -95,6 +102,7 @@ quit:  0
 q:     0
 
 8
+-----
 You are inside a building, a well house for a large
 spring.
 -----
@@ -106,6 +114,7 @@ quit:  0
 q:     0
 
 9
+-----
 You are on a road at the top of a small hill.  You
 can see a small brick building at the end of the road
 to the east.
