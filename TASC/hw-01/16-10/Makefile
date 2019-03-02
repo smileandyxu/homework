@@ -1,60 +1,38 @@
-# Makefile for cbook/16-Records/programs
-# Created by the ExportAll facility
-# ***************************************************************
+CC = gcc
+IDIR = include
+LDIR = lib
 
-PROGRAMS = \
-    employee \
-    point \
-    empdb \
-    teach 
+LIBS     = -L"lib" -static-libstdc++ -static-libgcc -g3
+OBJ      = teach.o lib/exceptio.o lib/genlib.o lib/random.o lib/simpio.o lib/strlib.o
+INCS     = -I"./include"
+BIN      = teach.exe
+CFLAGS   = $(INCS) -g3
 
-# ***************************************************************
-# Parameters to control Makefile operation
-# Note that the gccx command script must be defined
+.PHONY: all all-before all-after clean clean-custom
 
-CC = gccx
-CFLAGS = 
+all: all-before $(BIN) all-after
 
-# ***************************************************************
-# Entry to bring the package up to date
-
-all: $(PROGRAMS)
-
-# ***************************************************************
-# Standard entries to remove files from the directories
-#    tidy    -- eliminate unwanted files
-#    scratch -- delete derived files in preparation for rebuild
-
-tidy:
-	rm -f ,* .,* *~ core a.out graphics.ps
-
-scratch: tidy
-	rm -f *.o *.a $(PROGRAMS)
-
-# ***************************************************************
-# C compilations
-
-employee.o: employee.c
-	$(CC) $(CFLAGS) -c employee.c
-
-point.o: point.c
-	$(CC) $(CFLAGS) -c point.c
-
-empdb.o: empdb.c
-	$(CC) $(CFLAGS) -c empdb.c
+$(BIN): $(OBJ)
+	$(CC) $(OBJ) -o $(BIN) $(LIBS)
 
 teach.o: teach.c
-	$(CC) $(CFLAGS) -c teach.c
+	$(CC) -c teach.c -o teach.o $(CFLAGS)
 
+lib/exceptio.o: lib/exceptio.c
+	$(CC) -c lib/exceptio.c -o lib/exceptio.o $(CFLAGS)
 
-employee: employee.o
-	$(CC) $(CFLAGS) -o employee employee.o
+lib/genlib.o: lib/genlib.c
+	$(CC) -c lib/genlib.c -o lib/genlib.o $(CFLAGS)
 
-point: point.o
-	$(CC) $(CFLAGS) -o point point.o
+lib/random.o: lib/random.c
+	$(CC) -c lib/random.c -o lib/random.o $(CFLAGS)
 
-empdb: empdb.o
-	$(CC) $(CFLAGS) -o empdb empdb.o
+lib/simpio.o: lib/simpio.c
+	$(CC) -c lib/simpio.c -o lib/simpio.o $(CFLAGS)
 
-teach: teach.o
-	$(CC) $(CFLAGS) -o teach teach.o
+lib/strlib.o: lib/strlib.c
+	$(CC) -c lib/strlib.c -o lib/strlib.o $(CFLAGS)
+
+clean: clean-custom
+	rm -f $(OBJ) $(BIN)
+

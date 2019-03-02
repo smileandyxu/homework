@@ -53,10 +53,7 @@ double GetReal(void);
  * Usage: s = GetLine();
  * ---------------------
  * GetLine reads a line of text from standard input and returns
- * the line as a string.  
- * [We assume implicitly -- this assumption is very natural --
- * that the line does not contain the null character '\0'. (PF)]
- *                        The newline character that terminates
+ * the line as a string.  The newline character that terminates
  * the input is not stored as part of the string.
  */
 
@@ -67,10 +64,7 @@ string GetLine(void);
  * Usage: s = ReadLine(infile);
  * ----------------------------
  * ReadLine reads a line of text from the input file and
- * returns the line as a string.  
- * [We assume implicitly -- this assumption is very natural --
- * that the line does not contain the null character '\0'. (PF)]
- *                                The newline character
+ * returns the line as a string.  The newline character
  * that terminates the input is not stored as part of the
  * string.  The ReadLine function returns NULL if infile
  * is at the end-of-file position.

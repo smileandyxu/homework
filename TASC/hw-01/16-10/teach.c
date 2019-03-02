@@ -8,6 +8,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 
@@ -82,15 +83,19 @@ static FILE *OpenUserFile(string prompt, string mode);
 static void ProcessCourse(courseDB course);
 static void AskQuestion(questionT q);
 static int FindAnswer(string ans, questionT q);
+static int FindBegin(questionT q);
+static bool HasDot(string line);
+static bool HasJudge(string line);
 
 /* Main program */
 
-main()
+int main()
 {
     courseDB course;
 
     course = ReadDataBase();
     ProcessCourse(course);
+    return 0;
 }
 
 /* Section 1 -- Functions to read the data file */
@@ -290,7 +295,7 @@ static void AskQuestion(questionT q)
 {
     int i;
 
-    for (i = 0; q->qtext[i] != NULL; i++) {
+    for (i = FindBegin(q); q->qtext[i] != NULL; i++) {
         printf("%s\n", q->qtext[i]);
     }
 }
@@ -315,3 +320,51 @@ static int FindAnswer(string ans, questionT q)
     }
     return (-1);
 }
+
+/*
+ * Function: FindBegin
+ * Usage: FindAnswer(q)
+ * -------------------------
+ * This function looks up the place where true answer begins.
+ * The function uses a simple linear search algorithm to look
+ * through the array.
+ */
+
+static int FindBegin(questionT q)
+{
+    int i, j;
+
+    for (j = 0; q->qtext[j] != NULL; ++j) {
+        if (HasDot(q->qtext[j])) {
+            break;
+        }
+    }
+    for (i = 0; i <= j && q->qtext[i] != NULL && q->qtext[j] != NULL; ++i) {
+        if (HasJudge(q->qtext[i])) {
+            return j + 1;
+        }
+    }
+    return 0;
+}
+
+static bool HasDot(string line)
+{
+    int i;
+    
+    for (i = strlen(line) - 1; i >= 0; --i) {
+        if (line[i] == '.') {
+            return TRUE;
+        }
+        else if (!isblank(line[i])) {
+            return FALSE;
+        }
+    }
+    return FALSE;
+    
+}
+
+static bool HasJudge(string line)
+{
+    return (FindString("Yes", line, 0) != -1 || FindString("No", line, 0) != -1);
+}
+
