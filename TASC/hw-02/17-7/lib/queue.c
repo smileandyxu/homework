@@ -22,14 +22,19 @@
  * --------------
  * This type provides the concrete counterpart to the queueADT.
  * The representation used here consists of an array coupled
- * with an integer indicating the effective size.  This
- * representation means that Dequeue must shift the existing
- * elements in the queue.
+ * with two integers representing the head pointer and the tail
+ * pointer of the array. The head pointer points to the first 
+ * element in the array if there exists one, otherwise it will
+ * points to where the elements should begin to be put. The 
+ * tail pointer points to the place after the last element if 
+ * there exists one. otherwise it will points to where the next
+ * element will be put.
  */
 
+
 struct queueCDT {
-    void *array[MaxQueueSize];
-    int len;
+    void *array[MaxQueueSize + 1];
+    int head, tail;
 };
 
 /* Exported entries */
@@ -46,7 +51,8 @@ queueADT NewQueue(void)
     queueADT queue;
 
     queue = New(queueADT);
-    queue->len = 0;
+    queue->head = 0;
+    queue->tail = 0;
     return (queue);
 }
 
@@ -60,6 +66,10 @@ void FreeQueue(queueADT queue)
 {
     FreeBlock(queue);
 }
+int TrueIndex(int x)
+{
+    return x % MaxQueueSize;
+}
 
 /*
  * Function: Enqueue
@@ -69,10 +79,21 @@ void FreeQueue(queueADT queue)
 
 void Enqueue(queueADT queue, void *obj)
 {
-    if (queue->len == MaxQueueSize) {
+    if (TrueIndex(queue->tail + 1) == TrueIndex(queue->head)) {
         Error("Enqueue called on a full queue");
     }
-    queue->array[queue->len++] = obj;
+    queue->array[(queue->tail)++] = obj;
+}
+
+/*
+ * Function: QueueLength
+ * ---------------------
+ * This function returns the number of elements in the queue.
+ */
+
+int QueueLength(queueADT queue)
+{
+    return TrueIndex(queue->tail - queue->head + MaxQueueSize * 2);
 }
 
 /*
@@ -87,22 +108,9 @@ void *Dequeue(queueADT queue)
     void *result;
     int i;
 
-    if (queue->len == 0) Error("Dequeue of empty queue");
-    result = queue->array[0];
-    for (i = 1; i < queue->len; i++) {
-        queue->array[i - 1] = queue->array[i];
-    }
-    queue->len--;
+    if (QueueLength(queue) == 0) Error("Dequeue of empty queue");
+    result = queue->array[(queue->head)++];
+    
     return (result);
 }
 
-/*
- * Function: QueueLength
- * ---------------------
- * This function returns the number of elements in the queue.
- */
-
-int QueueLength(queueADT queue)
-{
-    return (queue->len);
-}
