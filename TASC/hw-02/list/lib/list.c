@@ -19,18 +19,11 @@
 
 #define MaxListSize 1000
 
-/*
- * Type: listCDT
- * --------------
- * This type provides the concrete counterpart to the listADT.
- * The representation used here consists of an array coupled
- * with a integer representing the length of the list.
- */
-
 struct listCDT
 {
-    int array[MaxListSize];
+    int num;
     int len;
+    listADT prev;
 };
 
 /*
@@ -41,6 +34,8 @@ struct listCDT
 
 int SizeOfList(listADT list)
 {
+    if (list == NULL)
+        return 0;
     return list->len;
 }
 
@@ -53,8 +48,8 @@ int SizeOfList(listADT list)
 int Check(listADT list)
 {
     int flag = 1, i;
-    for (i = 1; flag && i < SizeOfList(list); ++i) {
-        if (list->array[i - 1] > list->array[i]) {
+    for (listADT p = list; p && p->prev; p = p->prev) {
+        if (p->num < (p->prev)->num) {
             flag = 0;
         }
     }
@@ -68,11 +63,22 @@ int Check(listADT list)
  * new list.
  */
 
-listADT NewList()
+listADT NewList(int x, int l, listADT pre)
 {
     listADT list = New(listADT);
-    list->len = 0;
+    list->num = x;
+    list->len = l;
+    list->prev = pre;
     return list;
+}
+
+listADT FindHead(listADT list)
+{
+    if (list == NULL)
+        return NULL;
+    else if (list->prev == NULL)
+        return list;
+    return FindHead(list->prev);
 }
 
 /*
@@ -83,22 +89,60 @@ listADT NewList()
 
 listADT GetList()
 {
-    listADT list = NewList();
+    listADT list = NULL;
     int input;
     while (scanf("%d", &input) && input != -1) {
         if (SizeOfList(list) == MaxListSize) {
             printf("Too many input numbers!\n");
             break;
         }
-        list->array[(list->len)++] = input;
+        list = AddList(list, input);
     }
     if (!Check(list)) {
         printf("Input sequence is illegal.\n");
-        list->len = 0;
+        FreeList(list);
+        list = NULL;
     }
     return list;
 }
-
+/*
+ * Function: AddList
+ * ------------------
+ * This function adds an element at the tail of the list.
+ */
+listADT AddList(listADT list, int x)
+{
+    listADT tmp;
+    if (list)
+        tmp = NewList(x, list->len + 1, list);
+    else
+        tmp = NewList(x, 1, NULL);
+    return tmp;
+}
+/*
+ * Function: AddList
+ * ------------------
+ * This function adds an element at the head of the list.
+ */
+listADT InsertList(listADT list, int x)
+{
+    listADT tmp = NewList(x, 1, NULL);
+    tmp->num = x;
+    listADT p = list;
+    while (p) {
+        (p->len)++;
+        p = p->prev;
+    }
+    p = FindHead(list);
+    if (p) {
+        p->prev = tmp;
+        return list;
+    }
+    else {
+        return tmp;
+    }
+    
+}
 /*
  * Function: MergeList
  * ------------------
@@ -108,22 +152,16 @@ listADT GetList()
 
 listADT MergeList(listADT lhs, listADT rhs)
 {
-    listADT list = NewList();
-    int lp = 0, rp = 0;
-    while (lp != lhs->len || rp != rhs->len) {
-        if (lp != lhs->len && rp != rhs->len) {
-            if (lhs->array[lp] < rhs->array[rp]) {
-                list->array[(list->len)++] = lhs->array[lp++];
-            }
-            else {
-                list->array[(list->len)++] = rhs->array[rp++];
-            }
-        }
-        else if (lp != lhs->len) {
-            list->array[(list->len)++] = lhs->array[lp++];
+    listADT list = NULL;
+    while (lhs || rhs) {
+        if ((lhs && rhs && lhs->num > rhs->num) || (lhs && !rhs)) {
+            list = InsertList(list, lhs->num);
+            lhs = lhs->prev;
+
         }
         else {
-            list->array[(list->len)++] = rhs->array[rp++];
+            list = InsertList(list, rhs->num);
+            rhs = rhs->prev;
         }
     }
     return list;
@@ -137,15 +175,21 @@ listADT MergeList(listADT lhs, listADT rhs)
 
 void PutList(listADT list)
 {
-    int i;
-
-    for (i = 0; i != SizeOfList(list); ++i) {
-        printf("%d", list->array[i]);
-        if (i + 1 != SizeOfList(list))
-            printf(" ");
+    int stack[MaxListSize];
+    int i = 0;
+    while (list) {
+        stack[i++] = list->num;
+        list = list->prev;
     }
-    if (SizeOfList(list) == 0)
+    if (i == 0)
         printf("NULL");
+    else {
+        for (i = i - 1; i >= 0; --i) {
+            printf("%d", stack[i]);
+            if (i > 0)
+                printf(" ");
+        }
+    }
     printf("\n");
 }
 
@@ -157,5 +201,8 @@ void PutList(listADT list)
 
 void FreeList(listADT list)
 {
+    if (list->prev) {
+        FreeList(list->prev);
+    }
     FreeBlock(list);
 }
