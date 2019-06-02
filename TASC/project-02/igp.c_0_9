@@ -1,0 +1,353 @@
+#include "graphics.h"
+#include "extgraph.h"
+#include "genlib.h"
+#include "simpio.h"
+#include "conio.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <stddef.h>
+#include <windows.h>
+#include <olectl.h>
+#include <mmsystem.h>
+#include <wingdi.h>
+#include <ole2.h>
+#include <ocidl.h>
+#include <winuser.h>
+
+#define eps 1e-3
+#define MAX_LAYER 10000
+#define edge 0.2
+
+int mode;//0-select 1-line 2-rectangle 3-oval 4-text
+int layer_num=0; //number of layers
+int current_id;
+int current_option;//which place mouse stays on current layer
+double mx, my;//x & y of mouse
+double lastx, lasty;//x&y of mouse(use in drawing layer) 
+bool mouse_special;//那車㊣那那?℅? 
+
+typedef struct {
+	int kind, length, id; //length is length of text
+	double x1, x2, y1, y2;
+	char text[100];
+} graph;
+
+graph layer[MAX_LAYER]; //start from 1
+
+void MouseEventProcess(int, int, int, int);
+void KeyboardEventProcess(int, int);
+void CharEventProcess(char);
+
+void draw(bool);
+void drawbg(bool);
+void drawbox(double,double,double,double);
+void drawoval(double,double,double,double);
+void drawimaginarybox(double,double,double,double);
+void add_char(int, char);
+void del(int);
+int menu_check(double, double);
+int layer_check(double, double);
+void insert_layer(double, double, double, double);
+void layer_transform(double, double);
+void mydrawline(double,double,double,double);
+
+void Main() {
+    OpenConsole();/////////////////////////test
+    InitGraphics();
+    registerMouseEvent(MouseEventProcess);
+    registerKeyboardEvent(KeyboardEventProcess);
+    registerCharEvent(CharEventProcess);
+    draw(1);
+}
+
+void MouseEventProcess(int x, int y, int button, int event) {
+	int i, t;
+	printf("%d %d %d %d mode:%d\n",x,y,button,event,mode);
+	if (button != LEFT_BUTTON)
+		return;
+    double nx = ScaleXInches(x);
+    double ny = ScaleYInches(y);
+	if (event == BUTTON_UP) {
+		printf("%lf %lf",nx,ny);
+		t = menu_check(nx, ny);
+		printf(" %d\n",t);
+		if (t)
+		{
+			mode = t%5, current_id = 0;
+			draw(0);
+			draw(1);
+		}
+		else if (!valid(nx, ny))
+			mode = 0, current_id = 0;
+		else if (mode == 0)
+			current_id = layer_check(nx, ny), current_option = 0;
+		else
+			current_id = layer_num, current_option = 0;
+	}
+	else if (event == BUTTON_DOWN) {
+		if (mode == 0) {
+			if (current_id) {
+				current_option = option_check(x, y);
+				layer_transform(nx, ny);
+			}
+		}
+		else {
+			insert_layer(lastx, lasty, nx, ny);
+			current_id = layer_num, current_option = 0;
+		}
+	}
+	else if (event == MOUSEMOVE) {
+		if (current_id && current_option)
+			layer_transform(nx, ny);
+	}
+	mx = nx, my = ny;
+}
+
+void KeyboardEventProcess(int key, int event) {
+	if (event == KEY_DOWN)
+		if (mode == 0 && current_id && key == VK_DELETE)
+			del(current_id), current_id = 0;
+}
+
+void CharEventProcess(char c) {
+	if(c=='c') CloseConsole(); ///////////////////////test 
+	if(c=='d') draw(1);
+	if(c=='f') draw(0);
+	if (mode == 4 && current_id) {
+		draw(0);
+		if (c == '\r')
+			mode = 0, add_char(current_id, 0);
+		else
+			add_char(current_id, c);
+		draw(1);
+	}
+}
+
+/*
+drawmode-0 clear all elements
+drawmode-1 draw all elements
+*/
+void draw(bool drawmode) { //not finished!
+ 	drawbg(drawmode);
+}
+
+//judge point(x,y) is in valid drawing area or not
+bool indrawingarea(double x,double y)
+{
+	if(x<1.5+edge) return 0;
+	if(x>10.0-edge) return 0;
+	if(y<edge) return 0;
+	if(y>7.0-edge) return 0;
+	return 1;
+}
+
+void drawbox(double x1,double y1,double x2,double y2) //x1<x2,y1<y2
+{
+	if(!indrawingarea(x1,y1)&&!indrawingarea(x2,y2)) return; 
+	if(indrawingarea(x1,y1)&&indrawingarea(x2,y2))
+	{
+		MovePen(x1,y1);
+		DrawLine(x2-x1,0);
+		DrawLine(0,y2-y1);
+		DrawLine(x1-x2,0);
+		DrawLine(0,y1-y2);
+		return;
+	}	
+	if(indrawingarea(x1,y1))
+	{
+		MovePen(x1,y1);
+		if(x2<10.0-edge) 
+		{
+			DrawLine(x2-x1,0);
+			DrawLine(0,7.0-edge-y1);
+			MovePen(x1,y1);
+			DrawLine(0,7.0-edge-y1);
+			return;	
+		}
+		else if(y2<7.0-edge)
+		{
+			DrawLine(10.0-edge-x1,0);
+			MovePen(x1,y1);
+			DrawLine(0,y2-y1);
+			DrawLine(10.0-edge-x1,0);
+			return;
+		}
+		else
+		{
+			DrawLine(10.0-edge-x1,0);
+			MovePen(x1,y1);
+			DrawLine(0,7.0-edge-y1);
+		}
+	}
+	else
+	{
+		MovePen(x2,y2);
+		if(x1>1.5+edge) 
+		{
+			DrawLine(x1-x2,0);
+			DrawLine(0,edge-y2);
+			MovePen(x2,y2);
+			DrawLine(0,edge-y2);
+			return;	
+		}
+		else if(y1>edge)
+		{
+			DrawLine(1.5+edge-x2,0);
+			MovePen(x2,y2);
+			DrawLine(0,y1-y2);
+			DrawLine(1.5+edge-x2,0);
+			return;
+		}
+		else
+		{
+			DrawLine(1.5+edge-x2,0);
+			MovePen(x2,y2);
+			DrawLine(0,edge-y2);
+		}		
+	}
+}
+
+void drawoval(double x1,double y1,double x2,double y2)//x1<x2,y1<y2
+{
+	
+}
+
+void drawimaginarybox(double x1,double y1,double x2,double y2)//x1<x2,y1<y2
+{
+	
+}
+
+void drawline(double x1,double y1,double x2,double y2)//x1<x2,y1<y2
+{
+	
+}
+
+void drawbg(bool drawmode){
+	if(drawmode) SetPenColor("Black");
+	else SetPenColor("White");
+	//SetPenSize(5);
+	MovePen(1.5,0);
+	DrawLine(0,7); 
+	int i;
+	for(i=0;i<=4;i++)
+	{
+		if(drawmode&&mode==i) SetPenColor("Blue");
+		MovePen(0.25,0.2+(4-i)*1.4);
+		DrawLine(1,0);
+		DrawLine(0,1);
+		DrawLine(-1,0);
+		DrawLine(0,-1);
+		if(drawmode&&mode==i) SetPenColor("Black");
+	}
+	if(drawmode&&mode==0) SetPenColor("Blue");
+	MovePen(0.55,5.9);
+	DrawLine(0.1,0.2);
+	DrawLine(-0.22,0);
+	DrawLine(0.5,0.53);
+	DrawLine(0,-0.63);
+	DrawLine(-0.18,0.1);
+	DrawLine(-0.1,-0.2);
+	DrawLine(-0.1,0);
+	if(drawmode&&mode==0) SetPenColor("Black");
+	if(drawmode&&mode==1) SetPenColor("Blue");	
+	MovePen(0.45,5.25);
+	//SetPenSize(1);
+	DrawArc(0.05,0,360);
+	MovePen(1.15,4.55);
+	DrawArc(0.05,0,360);
+	//SetPenSize(2);
+	MovePen(0.4,5.25);
+	DrawLine(0.7,-0.7);
+	if(drawmode&&mode==1) SetPenColor("Black");
+	if(drawmode&&mode==2) SetPenColor("Blue");	
+	MovePen(0.35,3.8);
+	DrawLine(0.6,0);
+	DrawLine(0,-0.4);
+	DrawLine(-0.6,0);
+	DrawLine(0,0.4);
+	MovePen(0.75,3.5);
+	DrawLine(0.4,0);
+	DrawLine(0,-0.4);
+	DrawLine(-0.4,0);
+	DrawLine(0,0.4);
+	if(drawmode&&mode==2) SetPenColor("Black");
+	if(drawmode&&mode==3) SetPenColor("Blue");	
+	MovePen(1.05,2.1);
+	DrawArc(0.3,0,360);
+	MovePen(0.9,2.1);
+	DrawArc(0.15,0,360);
+	if(drawmode&&mode==3) SetPenColor("Black");
+	if(drawmode&&mode==4) SetPenColor("Blue");	
+	//SetPenSize(1);
+	MovePen(0.45,0.95);
+	DrawLine(0,0.1);
+	MovePen(1.05,0.95);
+	DrawLine(0,0.1);
+	//SetPenSize(2);
+	MovePen(0.45,1);
+	DrawLine(0.6,0);
+	MovePen(0.75,1);
+	DrawLine(0,-0.65);
+	DrawLine(-0.1,0);
+	DrawLine(0.2,0);
+	if(drawmode&&mode==4) SetPenColor("Black");
+}
+
+//add char c to layer[id].text 's end
+void add_char(int id, char c) {
+	
+}
+
+//del layer[id] than make [id+1, layer_num] -> [id, layer_num-1]
+void del(int id) {
+	int i;
+	draw(0);
+	for (i = id; i <= layer_num-1; i++)
+		layer[i] = layer[i + 1];
+	layer_num--;
+	draw(1);
+}
+
+//return which mode is mouse stay in the menu, if not return 0
+int menu_check(double x, double y) {
+	if(x>=0.25&&x<=1.25)
+	{
+		int i;
+		for(i=0;i<=4;i++)
+		{
+			if(y>=0.2+i*1.4 && y<=1.2+i*1.4) return 4-i>0?4-i:5; 
+		}
+		return 0;
+	}
+	else return 0; 
+}
+
+//return which layer_edge is mouse stay, if not return 0
+int layer_check(double x, double y) {
+	
+}
+
+/*
+if mouse stay on edge return 1-4
+else if mouse stay on corner return 5-8
+*/
+int option_check(double x, double y) {
+	
+}
+
+//judge if x & y is in the box
+int valid(double x, double y) {
+	
+}
+
+/*
+insert a new layer with a start point
+remember to give it a new id by ++tot (id start from 1)
+*/
+void insert_layer(double x1,double y1,double x2, double y2) {
+}
+
+//use for layer's transforming
+void layer_transform(double x, double y) {
+	
+}
